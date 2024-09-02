@@ -1,0 +1,79 @@
+<#
+    .SYNOPSIS
+
+    Unregister-MirrorConfig removes a mirror from a project.
+
+    .DESCRIPTION
+
+    Unregister-MirrorConfig removes a mirror from a project.
+
+    .PARAMETER ProjectID
+        The ID of the project to remove the mirror from.
+
+    .PARAMETER MirrorID
+        The ID of the mirror to remove.
+
+    .EXAMPLE
+
+    Unregister-MirrorConfig -ProjectID 1 -MirrorID 2
+
+    .NOTES
+        Requires Authentication through Request-GitLabAuth
+        
+    .LINK
+#>
+
+using module .\Request-GitLabAuth.psm1
+using module ..\..\securestring\undo-securestring.psm1
+using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module .\private\Confirm-GitLabAuth.psm1
+
+function Unregister-MirrorConfig {
+    [CmdletBinding()]
+    [OutputType('void')]
+    [Alias('glvum')]
+    param (
+        [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
+        [pscustomobject]$Data,
+        [Parameter(Mandatory = $false)]
+        [int]$ProjectID,
+        [Parameter(Mandatory = $false)]
+        [int]$MirrorID
+    )
+    process{
+        try{
+
+            Confirm-GitLabAuth
+
+            if(!$data -and !$ProjectID){
+                throw "No data from pipe or -projectid param specified"
+            }elseif($data){
+                $ProjectID = $data.project_id
+                $MirrorID = $data.id
+            }else{
+                $ProjectID = $ProjectID
+                $MirrorID = $MirrorID
+            }
+
+            [console]::write("$($global:_glvigor.log) running mirror configuration unregistration`n")
+            $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
+            $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+            $headers.Add("Authorization", "Bearer $_gitlab_apikey")
+            $headers.Add("Content-Type", "application/json")
+            [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_delete)::$($global:_glvigor.auth.apipath)/projects/$ProjectID/remote_mirrors/$MirrorID`n")
+            Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$ProjectID/remote_mirrors/$MirrorID" `
+                              -Headers $headers `
+                              -Method 'DELETE'
+            [console]::write("$($global:_glvigor.logsub) $(csole -s "Mirror configuration unregistered" -c green)`n")
+        }catch [System.Exception] {
+           [console]::write("$($global:_glvigor.logsub) $(csole -s $_.Exception.Message -c red)`n")
+        }
+    }
+}
+
+$cmdletconfig = @{
+    function = @("Unregister-MirrorConfig")
+    alias    = @("glvum")
+}
+
+Export-Modulemember @cmdletconfig
