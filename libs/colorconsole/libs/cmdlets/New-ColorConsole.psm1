@@ -88,7 +88,7 @@ Function New-ColorConsole() {
             "darkred",
             "darkcyan",
             "darkmagenta", ignorecase = $true)]
-        $bgcolor = "black"
+        $bgcolor = ""
     )
     Begin {
         # Define the escape sequence for color formatting
@@ -149,7 +149,7 @@ Function New-ColorConsole() {
                 "darkred" { return "$colorDarkRed$string$colorReset" }
                 "darkcyan" { return "$colorDarkCyan$string$colorReset" }
                 "darkmagenta" { return "$colorDarkMagenta$string$colorReset" }
-                default { return "$colorWhite$string$colorReset" }
+                default { return "$string" }
             } #! Add switch here for background color if needed
             switch ($bgcolor) {
                 "red" { return "$colorBgRed$string$colorBgReset" }
@@ -168,7 +168,7 @@ Function New-ColorConsole() {
                 "darkred" { return "$colorBgDarkRed$string$colorBgReset" }
                 "darkcyan" { return "$colorBgDarkCyan$string$colorBgReset" }
                 "darkmagenta" { return "$colorBgDarkMagenta$string$colorBgReset" }
-                default { return "$colorBgWhite$string$colorBgReset" }
+                default { return "$string" }
             }
         }
         else {

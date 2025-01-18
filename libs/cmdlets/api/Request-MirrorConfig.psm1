@@ -1,6 +1,3 @@
-using module ..\..\securestring\undo-securestring.psm1
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
- 
 <# ? Correct format test working
 .SYNOPSIS
 Sends a request to the GitLab API to retrieve mirror configuration for a project. You can filter the results by passing in the -MirrorID parameter.
@@ -40,11 +37,17 @@ Pipes a PSCustomObject representing a project ID into `Request-MirrorConfig` to 
 Requires authentication via `Request-GitLabAuth`.
 #>
 
+
+using module ..\..\securestring\undo-securestring.psm1
+using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module .\private\Confirm-GitLabAuth.psm1
+
 function Request-MirrorConfig {
 
     [CmdletBinding()]
     [Alias('glvrqm')]
     [OutputType([PSCustomObject])]
+
     param(
         [Parameter(Mandatory = $false, Position = 0, ValueFromPipeline = $true)]
         [pscustomobject]$data,
@@ -57,32 +60,26 @@ function Request-MirrorConfig {
     )
 
     process {
-        #-----------
-        # Outh block output to console 
-        # can add to all cmdlet/api functions
-        #-----------
-        [console]::write("$($global:_glvigor.log) gitlab mirror configuration request`n")
-        # Call Request-GitLabAuth if null write error to console then break
-        if ($null -eq $global:_glvigor.auth.httpstatus) {
-            [console]::write("$($global:_glvigor.logsub) $(csole -s 'error: not authenticated, use request-gitlabauth to authenticate' -c red)`n")
-            break;
-        }
-        # !unsure if auth logic will make it here because auth throws if not 200 statis code
-        # if $global:_glvigor.auth.httpstatus is not 200 write error to console then break
-        elseif ($global:_glvigor.auth.httpstatus -eq 404) {
-            [console]::write("$($global:_glvigor.logsub) $(csole -s 'error: unable to establish a connection' -c red)`n")
-            break;
-        }
-        # if auth is successfull and returns a payload with required fields write success to console and continue
-        else {
-            $Athenticated_message = $($global:_glvigor.log)
-            $Athenticated_message = $Athenticated_message + "$(csole -s " authenticated in as 👤 $($global:_glvigor.auth.user)" -c green)"
-            $Athenticated_message = $Athenticated_message + " 🌐-$(csole -s $global:_glvigor.auth.apipath -c Cyan)"
-            [console]::write("$Athenticated_message`n")
-        }
-        #-----------
 
         try{
+            #=== AUTH AND PIPELINE DATA ===
+            # change logtype and newline depending on if data is coming from pipeline
+            # helps with readability
+            [string]$initlogType = ''
+            [string]$pipedCmdlet = ''
+            if($data){ 
+                $initlogType='logsub'
+                [string]$pipedCmdlet = "($(csole -s "Request-MirrorConfig" -c blue))"
+            }else{ 
+                $initlogType = 'log'; 
+            }
+            # final logtype message
+            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) => $(csole -s 'api-mirror-config-request' -c yellow) $pipedCmdlet...`n")
+            
+            # call auth check
+            confirm-GitLabAuth
+            #=== AUTH AND PIPELINE DATA ===
+
             # [console]::write("$($global:_glvigor.log) fetching mirror id: $(csole -s $mirrorid -c magenta) for project: $(csole -s $projectid -c magenta)`n")
             $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             #! Note Headers can use a simple hash table or a PSObject as value 
@@ -92,69 +89,66 @@ function Request-MirrorConfig {
             $headers.Add("Authorization", "Bearer $_gitlab_apikey")
             $headers.Add("Content-Type", "application/json")
 
-            [console]::write("$($global:_glvigor.logsub) Generating request...`n")
             # if param ProjectID and MirrorID are specified and not comming from pipe 
             # return single mirror for that project of id specified
             if($ProjectID -and $MirrorID -and !$data) {
                 $inputsource = csole -s '[param]' -c gray -bg darkcyan
-                $log_request_path = $(csole -s "$($global:_glvigor.auth.apipath)/projects/$projectid/remote_mirrors/$mirrorid")
-                [console]::write("$($global:_glvigor.logsub) fetching mirror id: $(csole -s "$MirrorID" -c magenta) for project: $(csole -s "$ProjectID" -c magenta)`n")
-                [console]::write("$($global:_glvigor.log) $($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
+                $log_request_path = "$(csole -s $global:_glvigor.auth.apipath -c cyan)/projects/$projectid/remote_mirrors/$mirrorid"
+                [console]::write("$($global:_glvigor.logsub) Fetching mirror(🆔): $(csole -s "$MirrorID" -c magenta) for project(🆔): $(csole -s "$ProjectID" -c magenta)`n")
+                [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
                 $request_mirror = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$projectid/remote_mirrors/$mirrorid" `
                                                     -Headers $headers `
                                                     -Method 'GET'
                 # append pscustomobject psnoteproperty to $request_mirror to allow piped unregister-mirrorconfig
-                $request_mirror.psobject.properties.add([psnoteproperty]::new("project_id", $projectid))
+                $request_mirror.psobject.properties.add([psnoteproperty]::new('project_id', $projectid))
             }
             # if param -ProjectID but no other specified and not comming from pipe - return all mirrors for that project
             elseif(!$mirrorid -and $projectid -and !$data) {
                 $inputsource = csole -s '[param]' -c gray -bg darkcyan
-                $log_request_path = $(csole -s "$($global:_glvigor.auth.apipath)/projects/$projectid/remote_mirrors")
-                [console]::write("$($global:_glvigor.logsub) fetching mirrors for project: $(csole -s "$projectid" -c magenta)`n")
-                [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
+                $log_request_path = "$(csole -s $global:_glvigor.auth.apipath -c cyan)/projects/$projectid/remote_mirrors"
+                [console]::write("$($global:_glvigor.logsub) Fetching mirrors for project 🆔: $(csole -s "$projectid" -c magenta)`n")
+                [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
                 $request_mirror = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$projectid/remote_mirrors" `
                                                     -Headers $headers `
                                                     -Method 'GET'
                 # append pscustomobject psnoteproperty to $request_mirror to allow piped unregister-mirrorconfig
-                $request_mirror.psobject.properties.add([psnoteproperty]::new("project_id", $projectid))
+                $request_mirror.psobject.properties.add([psnoteproperty]::new('project_id', $projectid))
             }
             # if param -ProjectID and -MirrorID is not specified and data is not comming from pipe or specified
             # return all mirrors for that project base of piped.data.project_id
             # ? can be pipped from Request-Project
             elseif(!$projectid -and $mirrorid -and $data) {
-                $inputsource = csole -s '[pipe]' -c gray -bg darkyellow
-                $log_request_path = csole -s "$($global:_glvigor.auth.apipath)/projects/$($data.id)/remote_mirrors/$mirrorid"
-                [console]::write("$($global:_glvigor.logsub) extracting project id from piped-object`n")
-                [console]::write("$($global:_glvigor.logsub) fetching mirrors for project: $(csole -s "$($data.id)" -c magenta)`n")
-                [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
+                $inputsource = csole -s '[pipped]' -c gray -bg darkyellow
+                $log_request_path = "$(csole -s $global:_glvigor.auth.apipath -c cyan)/projects/$($data.id)/remote_mirrors/$mirrorid"
+                [console]::write("$($global:_glvigor.logsub) Extracting project id from $inputsource-object`n")
+                [console]::write("$($global:_glvigor.logsub) Fetching mirrors for project:($($data.Name))-$(csole -s "🆔:$($data.id)" -c magenta)`n")
+                [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
                 $request_mirror = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$($data.id)/remote_mirrors/$MirrorID" `
                                                     -Headers $headers `
                                                     -Method 'GET'
-                [console]::write("$($global:_glvigor.logsub) extracting mirror id $(csole -s $mirrorid -c magenta) for project: $(csole -s $($data.id) -c magenta)`n")
+                [console]::write("$($global:_glvigor.logsub) Extracting mirror-id $(csole -s $mirrorid -c magenta) for project: $(csole -s id:"$($data.id)" -c magenta)`n")
                 # append pscustomobject psnoteproperty to $request_mirror to allow piped unregister-mirrorconfig
-                $request_mirror.psobject.properties.add([psnoteproperty]::new("project_id", $data.id))
+                $request_mirror.psobject.properties.add([psnoteproperty]::new('project_id', $data.id))
             }
             # if no params specified and not comming from pipe - return all mirrors for all projects
             elseif(!$projectid -and !$mirrorid -and $data) {
-                $inputsource = csole -s '[pipe]' -c gray -bg darkyellow
-                $log_request_path = csole -s "$($global:_glvigor.auth.apipath)/projects/$($data.id)/remote_mirrors"
-                [console]::write("$($global:_glvigor.logsub) extracting project id from piped-object`n")
-                [console]::write("$($global:_glvigor.logsub) fetching mirrors for project: $(csole -s "$($data.id)" -c magenta)`n")
+                $inputsource = csole -s '[pipped]' -c gray -bg darkyellow
+                $log_request_path = "$(csole -s $global:_glvigor.auth.apipath -c cyan)/projects/$($data.id)/remote_mirrors"
+                [console]::write("$($global:_glvigor.logsub) Extracting project-id from $inputsource-object`n")
+                [console]::write("$($global:_glvigor.logsub) Fetching mirrors for project: ($($data.Name))-$(csole -s "🆔:$($data.id)" -c magenta)`n")
                 [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$inputsource::$log_request_path `n")
                 $request_mirror = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$($data.id)/remote_mirrors" `
                                                     -Headers $headers `
                                                     -Method 'GET'
                 # append pscustomobject psnoteproperty to $request_mirror to allow piped unregister-mirrorconfig
-                $request_mirror.psobject.properties.add([psnoteproperty]::new("project_id", $data.id))
+                $request_mirror.psobject.properties.add([psnoteproperty]::new('project_id', $data.id))
             }else{
-                [console]::write("$($global:_glvigor.log) error: $(csole -s 'invalid parameters' -c red)`n")
+                [console]::write("$($global:_glvigor.logsublast)$(csole -s ■ -c red)-Error $(csole -s $_.Exception.Message -c red)`n")
             }
 
-            [console]::writeline("$($global:_glvigor.logsub) $(csole -s 'parsing object...' -c green)`n")
+            [console]::writeline("$($global:_glvigor.logsublast) $(csole -s 'Parsing response objects...' -c green)")
             if ($request_mirror.count -eq 0){
-                return [PSCustomObject]@{
-                    Message = "$(csole -s "no mirrors found for project" -c red)"
-                }
+                return [PSCustomObject]@{  Message = "$(csole -s "no mirrors found for project" -c red)" }
             }else{
                 if(!$raw){
                     #TODO: use cofoge to manipulate psobject and colorconsone or colorizer to format and color
@@ -164,7 +158,7 @@ function Request-MirrorConfig {
                 }
             }
         }catch [System.Exception] {
-            [console]::write("$($global:_glvigor.log) $(csole -s ■ -c red)-error $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsublast)$(csole -s ■ -c red)-Error $(csole -s $_.Exception.Message -c red)`n")
         }
     }
 }

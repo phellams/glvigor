@@ -78,87 +78,123 @@ function Register-Issue {
         [Parameter(Mandatory = $false)]
         [int]$MilestoneID,
         [Parameter(Mandatory = $false)]
-        [string[]]$AssigneeIDs,
+        [int[]]$AssigneeIDs,
         [Parameter(Mandatory = $false)]
         [string]$AssigneeID,
         [Parameter(Mandatory = $false)]
-        [string]$labels,
+        [string[]]$labels,
         [Parameter(Mandatory = $false)]
         [switch]$Confidential = $false,
         [Parameter(Mandatory = $false)]
-        [int]$DiscussionID
+        [int]$DiscussionID,
+        [Parameter(Mandatory = $false)]
+        [switch]$Raw
     )
 
     process {
 
-        confirm-gitlabauth
+        #=== AUTH AND PIPELINE DATA ===
+        # change logtype and newline depending on if data is coming from pipeline
+        # helps with readability
+        [string]$initlogType = ''
+        [string]$pipedCmdlet = ''
+        if($data){ 
+            $initlogType='logsub'
+            $pipedCmdlet = "($(csole -s "Register-Issue" -c blue))"
+        }else{ 
+            $initlogType = 'log';
+            $pipedCmdlet = ''
+        }
+        # final logtype message
+        [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) => $(csole -s 'api-issue-creation-request' -c yellow) $pipedCmdlet...`n")
+        
+        # call auth check
+        confirm-GitLabAuth
+        #=== AUTH AND PIPELINE DATA ===
         
         if ($Data -and !$projectid) { $projectid = $data.id}
 
         if(!$ProjectID -and !$Data){
-            [console]::write("$($global:_glvigor.log) $(csole -s '🐇-glv response: missing project id' -c red)`n")
+            [console]::write("$($global:_glvigor.logSub) $(csole -s 'glv response: missing project id' -c red)`n")
             [console]::write("$($global:_glvigor.logsub) $(csole -s 'specify by -projectid or -data @{} or from search-gitlab pipeline' -c yellow)")
             break;
         }
 
-        # Set default type to issue ommit -type if creating a issue not a incident or task
-        if(!$type){$Type = 'issue'}
+        [pscustomobject]$_payload = @{}
 
-        [console]::write("$($global:_glvigor.log) gitlab issue new request to project $(csole -s $ProjectID -c magenta) type $(csole -s $Type -c magenta)`n")
+        # Set default type to issue ommit -type if creating a issue not a incident or task
+        if(!$type){
+            $Type = 'issue'
+            $_payload.psobject.properties.add([psnoteproperty]::new('issue_type', 'issue'))
+        } #! unsure if the api supports issue type on creation from the api
+        else{
+            $_payload.psobject.properties.add([psnoteproperty]::new('issue_type', $Type))
+        }
+        [console]::write("$($global:_glvigor.logSub) Issue new request to project $(csole -s $ProjectID -c magenta) type $(csole -s $Type -c magenta)`n")
         
         # api payload required fields
-        [console]::write("$($global:_glvigor.logSub) initializing post data payload`n")
+        [console]::write("$($global:_glvigor.logSub) Initializing post data payload`n")
         # New issue require param specified in the url https://docs.gitlab.com/ee/api/issues.html
-        [string]$_payload = ''
-        $payload += "&title=$([System.Web.HttpUtility]::UrlEncode($Title))"
+
+        # Add required
+        $_payload.psobject.properties.add([psnoteproperty]::new('title', $Title))
+
         if($Description){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•description: $(csole -s $Description -c gray)`n")
-            $_payload += "&description=$([System.Web.HttpUtility]::UrlEncode($Description))"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•description: $(csole -s $Description.tostring() -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('description', $Description))
         }
         if($MilestoneID){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•milestone: $(csole -s $MilestoneID -c gray)`n")
-            $_payload += "&milestone_id=$MilestoneID"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•milestone: $(csole -s $MilestoneID.tostring() -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('milestone_id', $MilestoneID))
         }
         if($AssigneeID){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•assignee: $(csole -s $AssigneeID -c gray)`n")
-            $_payload += "&assignee_id=$AssigneeID"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•assignee by id: $(csole -s "$($AssigneeID -join ', ')" -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('assignee_id', $AssigneeID))
+        }
+        if ($AssigneeIDs) {
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•assignee's by id: $(csole -s "$($AssigneeIDs -join ', ')" -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('assignee_ids', $AssigneeIDs))
         }
         if($labels){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•labels: $(csole -s $labels -c gray)`n")
-            $_payload += "&labels=$([System.Web.HttpUtility]::UrlEncode($labels))"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•labels: $(csole -s "$($labels -join ', ')" -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('labels', $labels))
         }
         # if($Type){
         #     [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•type: $(csole -s $Type -c gray)`n")
         #     $_payload += "&type=$([System.Web.HttpUtility]::UrlEncode($Type))"
         # }
         if($Confidential){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•confidential: $(csole -s $Confidential -c gray)`n")
-            $_payload += "&confidential=$Confidential"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•confidential: $(csole -s $Confidential -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('confidential', [bool]$Confidential))
         }
         if($DiscussionID){
-            [console]::write("$($global:_glvigor.logSub) adding «$(csole -s prop -c white -bg blue)»─•discussion_to_resolve: $(csole -s $DiscussioniD -c gray)`n")
-            $_payload += "&discussion_to_resolve=$DiscussionID"
+            [console]::write("$($global:_glvigor.logSub) Adding «$(csole -s prop -c white -bg blue)»─•discussion_to_resolve: $(csole -s $DiscussioniD -c gray)`n")
+            $_payload.psobject.properties.add([psnoteproperty]::new('discussion_to_resolve', $DiscussionID))
         }
 
         #-----------
         try {
-            [console]::write("$($global:_glvigor.log) sending new payload to project $(csole -s $ProjectID -c magenta) issues`n")
+            [console]::write("$($global:_glvigor.logSub) Sending new payload to project $(csole -s $ProjectID -c magenta) issues`n")
             # undo securestring
             $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
             $headers.Add("Authorization", "Bearer $_gitlab_apikey")
             $headers.Add("Content-Type", "application/json")
             [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_post)::$($global:_glvigor.auth.apipath)/projects/$(csole -s $ProjectID -c magenta)/issues`n")
-            # $issue_reqister = Invoke-RestMethod -Method Post `
-            #                                     -Uri "$($global:_glvigor.auth.apipath)/projects/$($projectid)/issues?type=$($type)"
-            #                                     -Headers $headers
-            #[console]::write("$($global:_glvigor.logsub) successfully created new issue $(csole -s $($issue_reqister.id) -c magenta) for project $(csole -s $ProjectID -c magenta)`n")
-            [console]::write("$($global:_glvigor.log) $(csole -s "parsing response..." -c green)`n")
+            $_payload | ConvertTo-Json # output of payload
+            $issue_reqister = Invoke-RestMethod -Method 'POST' `
+                                                -Uri "$($global:_glvigor.auth.apipath)/projects/$($projectid)/issues" `
+                                                -Headers $headers `
+                                                -body "$($_payload | ConvertTo-Json)"
+            [console]::write("$($global:_glvigor.logsub) Successfully created new issue $(csole -s $($issue_reqister.id) -c magenta) for project $(csole -s $ProjectID -c magenta)`n")
+            [console]::write("$($global:_glvigor.logSubLast) $(csole -s "Parsing response object..." -c green)`n")
         }
         catch [system.exception] {
-            [console]::write("$($global:_glvigor.logsub) $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsublast) $(csole -s $_.Exception.Message -c red)`n")
         }
-        return $issue_reqister
+        if (!$Raw) { return $issue_reqister | select-object created_at, id, project_id, title, state, labels, description, issue_type, confidential, assignee, author, assignees, web_url }
+        else { return $issue_reqister }
+        
     }
 }
 

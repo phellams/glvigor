@@ -66,8 +66,8 @@ function Register-MirrorConfig {
         [string]$ProjectName,
         [Parameter(Mandatory = $false)]
         [string]$User,
-        [Parameter(Mandatory = $false)]
-        [string]$Group,
+        # [Parameter(Mandatory = $false)]
+        # [string]$Group,
         [Parameter(Mandatory = $false)]
         [string]$APIKey,
         [Parameter(Mandatory = $false)]
@@ -109,7 +109,7 @@ function Register-MirrorConfig {
             switch ($Endpoint) {
                 "gitlab" {
                     # Predefined
-                    $MirrorHost_url = "https://gitlab.com" 
+                    $MirrorHost_url = "gitlab.com" 
                 } 
                 "gitlaben" {
                     # requires -GitLabHost which can be bypassed by using $ENV:GITLAB_HOST
@@ -123,7 +123,7 @@ function Register-MirrorConfig {
                 } 
                 "github" {
                     # Predefined
-                    $MirrorHost_url = "https://github.com" 
+                    $MirrorHost_url = "github.com" 
                 }
                 # "bitbucket" {
                 #     # Predefined 

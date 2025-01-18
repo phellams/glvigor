@@ -1,11 +1,39 @@
+<#
+.SYNOPSIS
+Search-Gitlab sends a request to the GitLab API to retrieve a project.
+
+.DESCRIPTION
+Search-Gitlab sends a request to the GitLab API to retrieve a project.
+
+.PARAMETER Title
+The title of the project to retrieve.
+
+.PARAMETER Type
+The type of the project to retrieve.
+
+.PARAMETER Raw
+If specified, returns the raw data from the API call as an unfiltered PSCustomObject.
+
+.PARAMETER Related
+The related type to retrieve.
+
+.PARAMETER Match
+If specified, returns the raw data from the API call as an unfiltered PSCustomObject.
+
+.EXAMPLE
+Search-Gitlab -type projects -title 'test' -raw
+#>
+
 using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
 using module ..\..\securestring\undo-securestring.psm1
 using module .\private\Confirm-GitLabAuth.psm1
 
 function Search-Gitlab {
+
     [cmdletbinding()]
     [OutputType('pscustomobject')]
     [Alias('glvs')]
+    
     param(
         [Parameter(Mandatory = $false)]
         [string]$Title,
@@ -13,7 +41,7 @@ function Search-Gitlab {
         [validateSet('projects', 'issues', 'merge_requests', 'milestones', 'snippet_titles', 'users', 'blobs', 'commits', 'notes', 'groups', IgnoreCase = $true)]
         [string]$Type = 'projects',
         [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
-        [string]$Group,
+        [string]$Namespace,
         [Parameter(Mandatory = $false)]
         [switch]$Raw = $false,
         [Parameter(Mandatory = $false)]
@@ -21,70 +49,157 @@ function Search-Gitlab {
         [Parameter(Mandatory = $false)]
         [switch]$Match = $false
     )
+
     process{
-        if(!$title){$title = ' '}
-        #-----------
-        # Outh block output to console 
-        # can add to all cmdlet/api functions
-        #-----------
 
-        [console]::write("$($global:_glvigor.log) Initializing $(csole -s $type -c yellow) search`n")
-        Confirm-GitlabAuth
+        #=== AUTH AND PIPELINE DATA ===
+        # change logtype and newline depending on if data is coming from pipeline
+        # helps with readability
 
-        # Headers
-        $apikey = $global:_glvigor.auth.apikey | undo-securestring
-        $headers = New-Object "System.Collections.Generic.Dictionary[[string],[string]]"
-        $headers.Add("Authorization", "Bearer $apikey")
-        $headers.Add("Content-Type", "application/json")
+        [console]::write("$($global:_glvigor.log)$($global:_glvigor.logcmds.run) => $(csole -s $type -c cyan) $(csole -s 'search-request' -c yellow)...`n")
+        
+        # call auth check
+        confirm-GitLabAuth
+        #=== AUTH AND PIPELINE DATA ===
+
+        #if(!$title){$title = ' '}
+
+        #! internal func to paginate search from api query
+        #! limit is 100 pages at a time
+        function Search-GitlabPages {
+            
+            param($Title, $Type)
+
+            [pscustomobject[]]$pages = @()
+            [int]$per_page = 100
+            [int]$page = 1
+            [string]$api_path = $global:_glvigor.auth.apipath
+            [string]$logSubRun = "$($global:_glvigor.logSubRun)$($global:_glvigor.logcmds.api_get)"
+
+            # Headers
+            $apikey = $global:_glvigor.auth.apikey | undo-securestring
+            $headers = New-Object "System.Collections.Generic.Dictionary[[string],[string]]"
+            $headers.Add("Authorization", "Bearer $apikey")
+            $headers.Add("Content-Type", "application/json")
+
+            switch ($Type) {
+                'projects'       { $api_path  += "/search?&scope=projects&search=$Title" }
+                'issues'         { $api_path  += "/search?&scope=issues&search=$Title" }
+                'merge_requests' { $api_path  += "/search?&scope=merge_requests&search=$Title" }
+                'milestones'     { $api_path  += "/search?&scope=milestones&search=$Title" }
+                'snippet_titles' { $api_path  += "/search?&scope=snippets&search=$Title" }
+                'users'          { $api_path  += "/search?&scope=users&search=$Title" }
+                'blobs'          { $api_path  += "/search?&scope=blobs&search=$Title" }
+                'commits'        { $api_path  += "/search?&scope=commits&search=$Title" }
+                'notes'          { $api_path  += "/search?&scope=notes&search=$Title" }
+                'groups'         { $api_path  += "/groups?search&search=$Title" }
+            }
+
+            do {
+                [console]::write("$logSubRun => $(csole -s Paganation -c cyan) => $api_path&page=$page&per_page=$per_page`n")
+                $response = Invoke-RestMethod "$api_path&page=$page&per_page=$per_page" -Method 'GET' -Headers $headers
+                $pages += $response
+                $page++
+
+            } while ($response.count -eq $per_page)
+            
+            return $pages
+        }
+
+        [string]$SearchAll = ""
+        if ($null -eq $Title -or $Title -eq "" -or $Title.Length -eq 0) { $SearchAll = "ALL" }
+        else{ $SearchAll = $Title }
 
         try {
-            [console]::write("$($global:_glvigor.log) search $(csole -s 'Type:' -c green) $type - $(csole -s 'Name:' -c green) '$Title'`n")
-            [console]::write("$($global:_glvigor.logsub)$($global:_glvigor.logcmds.api_get)::$(csole -s $global:_glvigor.auth.apipath -c cyan)/search?&scope=$(csole -s $Type -c magenta)&search=$(csole -s $Title -c magenta )`n")
-            if(!$Title -and $type -ne 'groups'){
-                $response = Invoke-RestMethod "$($global:_glvigor.auth.apipath)/search?&scope=$Type&search=" -Method 'GET' -Headers $headers
-            }elseif($title -and $type -eq 'groups'){
-                $response = Invoke-RestMethod "$($global:_glvigor.auth.apipath)/groups?/search?&search=" -Method 'GET' -Headers $headers
-            }elseif($title -and !$Group ){
-                $response = Invoke-RestMethod "$($global:_glvigor.auth.apipath)/search?&scope=$Type&search=$Title" -Method 'GET' -Headers $headers
-            }
-            else{
-                $response = Invoke-RestMethod "$($global:_glvigor.auth.apipath)/groups?/search?&search=$Title" -Method 'GET' -Headers $headers
-            }
-            [console]::write("$($global:_glvigor.logsub) $(csole -s $response.count -c green) results found matching: $Title `n")
+
+            [console]::write("$($global:_glvigor.logsub) Search $(csole -s 'Type' -c green) •-[$(csole -s "$type" -c cyan)] $(csole -s 'Title' -c green) •-[$(csole -s "($SearchAll)" -c cyan)]`n")
+            [console]::write("$($global:_glvigor.logSubRun)$($global:_glvigor.logcmds.api_get) => $(csole -s $global:_glvigor.auth.apipath -c cyan)/search?&scope=$(csole -s $Type -c magenta)&search=Title•-[$(csole -s "($SearchAll)" -c cyan)]`n")
+            
+            $response = Search-GitlabPages -Title $title -Type $type
+
+            [console]::write("$($global:_glvigor.logsub) Found ($(csole -s $response.count -c yellow)) resources of Type •-[$(csole -s $type -c magenta)] with Title •-[$(csole -s "($SearchAll)" -c cyan)]`n")
+            
             if($response.count -eq 0){
-                [console]::write("$($global:_glvigor.logsub) $(csole -s "no results found matching: $Title" -c red)`n")
+                throw [System.Exception]::New("$(csole -s "0 results found matching •-[$(csole -s "($SearchAll)" -c cyan)] with type: $type" -c red)")
             }
-            [console]::write("$($global:_glvigor.logsub) parsing response...`n")
+            
+            [console]::write("$($global:_glvigor.logsub) Parsing response objects...`n")
         }
         catch {
-            [console]::write("$($global:_glvigor.logsub) error: $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsub) Error: $(csole -s $_.Exception.Message -c red)`n")
         }
+
         if($null -eq $response -or $response.count -eq 0){
-            return [PSCustomObject]@{Response = '201'; Message = "$(csole -s "no results found matching: $Title" -c red)"; }
+            return [PSCustomObject]@{
+                Response = '201';  
+                Message = "No results found matcahing: $SearchAll";
+            }
         }else{
-            if(!$raw -and $response.count -gt 0){
+            if($response.count -gt 0){
                 switch ($Type){
+                    # returns projects filter by name or name with namespace(group name)
+                    # half the filtering is done with api other half is done here.
+                    # can be piped to other cmdlets.
                     'projects' { 
                         if($match){
-                            return $response | where-object { $_.name -eq $title -or $_.path_with_namespace -eq $title } 
-                            | select-object id, name, path_with_namespace, http_url_to_repo
+                            # Namespace is not required but output help text to console if not provided
+                            if(!$namespace){$namespace = "No namespace provided use $(csole -s '-Namespace' -c magenta) for a difinitive match"}
+                            else { $namespace = "$Namespace / $Title"}
+                            [console]::write("$($global:_glvigor.logsub) Attempting to match $(csole -s "• $title" -c yellow) in $(csole -s "• $Type" -c yellow) with namespace: $(csole -s "• $Namespace" -c yellow)`n")
+                            $matched_filtered = $response | where-object { $_.name -eq $title -or $_.name_with_namespace -eq $Namespace }
+                            if ($matched_filtered.count -gt 1){
+                                [console]::write("$($global:_glvigor.logsubreturn)🥽 Multiple matches found for •-[$(csole -s "($SearchAll)" -c cyan)] $(csole -s "• $Namespace" -c yellow)`n")
+                                if(!$raw){ return $matched_filtered | select-object id, name, path_with_namespace, http_url_to_repo }
+                                else{ return $matched_filtered }
+                            }else{
+                                [console]::write("$($global:_glvigor.logsubreturn)🥽 Exact match found: •-[$(csole -s "($SearchAll)" -c cyan)] with namespace: $(csole -s "• $Namespace" -c yellow) with id: $(csole -s "• $($matched_filtered.id)" -c yellow)`n")
+                                if(!$raw){ return $matched_filtered | select-object id, name, path_with_namespace, http_url_to_repo }
+                                else{ return $matched_filtered }
+                            }
                         }else{
-                            return $response | select-object id, name, path_with_namespace, http_url_to_repo
+                            [console]::write("$($global:_glvigor.logsubreturn)🥽 Filtering $(csole -s "•-$(if($title){"$title"}else{"ALL"})" -c yellow) in $(csole -s $type -c yellow) object`n")
+                            # if coming from pipe dont output response with a `n line
+                            if(!$raw){ return $response | select-object id, name, path_with_namespace, http_url_to_repo }
+                            else{ return $response }
                         }
-                    } #* Done
-                    'issues' { return $response | where-object { $_.web_url -like "*$Related*" } | select-object id, project_id, title, web_url } #* done
-                    'merge_requests' { return $response | where-object { $_.web_url -like "*$Related*" } |select-object project_id, title, web_url } #TODO: change properties to match api return
+                    }
+                    # returns issues filter by name or if web_url contains title 
+                    # and if no title provided returns all issues.
+                    # can be piped to other cmdlets
+                    'issues' { 
+                        if($match){
+                            [console]::write("$($global:_glvigor.logsubreturn)🥽 Attempting to match •-[$(csole -s "($SearchAll)" -c cyan)] in $(csole -s $Type -c yellow)`n")
+                            $matched_filtered = $response | where-object { $_.title -eq $title -or $_.web_url -like "*$title*" }
+                            if ($matched_filtered.count -gt 1){
+                                [console]::write("$($global:_glvigor.logsubreturn)🥽 Multiple matches found for •-[$(csole -s "($SearchAll)" -c cyan)]")
+                                if(!$raw){return $matched_filtered | select-object id, project_id, title, web_url }
+                                else{ return $matched_filtered }
+                            }else {
+                                [console]::write("$($global:_glvigor.logsubreturn)🥽 Exact match found •-[$(csole -s "($SearchAll)" -c cyan)] with id $(csole -s "•-$(•$matched_filtered.id)" -c yellow)")
+                                if(!$raw){return $matched_filtered | select-object id, project_id, title, web_url}
+                                else{ return $matched_filtered }
+                            }
+                        }else{
+                            return $response | select-object id, project_id, title, web_url 
+                        }
+                    }
+                    'merge_requests' { return $response | where-object { $_.web_url -like "*$Related*" -or $_.project_id -eq $Related}
+                            | select-object project_id, title, web_url 
+                    }
+                    'snippet_titles' {
+                        return $response | where-object { $_.web_url -like "*$Related*" -or $_.project_id -eq $Related } 
+                        | select-object id, title, web_url, raw_url, visibility
+                    }
                     'milestones' { return $response | select-object project_id, title, web_url } #TODO: change properties to match api return
                     'users' { return $response | select-object id, name, web_url } #TODO: change properties to match api return
                     'groups' { return $response | select-object id, name, web_url } #TODO: change properties to match api return
-                    default { throw [System.ArgumentOutOfRangeException]::new("Type", $type, "Type must be 'projects', 'issues', 'merge_requests', 'milestones', 'users' or 'groups") }
+                    default { throw [System.ArgumentOutOfRangeException]::new("Type", $type, "Type must be 'projects', 'issues', 'merge_requests', 'milestones', 'snippet_titles', 'blobs' ,'users' or 'groups") }
                 }
+            }else{
+                return $response
             }
-            return $response
         }
-
     }
-
 }
 
 $cmdletconfig = @{

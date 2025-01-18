@@ -11,8 +11,8 @@ The name of the mirror. The default value is 'mirror'.
 .PARAMETER Endpoint
 The destination instance. Supported values are: `gitlab`, `gitlaben`, `gitea`, `github`. For self-hosted instances, use the `-GiteaHost` and `-GitLabHost` parameters together with the respective endpoint.
 
-.PARAMETER User
-The username or group name of the project to mirror.
+.PARAMETER Group
+The username or group name of the project to mirror, for github this is the org name.
 
 .PARAMETER APIKey
 The API key for the destination instance.
@@ -52,8 +52,10 @@ Function Add-LocalMirror {
         [Parameter(Mandatory = $true)]
         [validateset('github', 'gitlab', 'gitea', 'gitlaben', IgnoreCase = $true)]
         [string]$Endpoint,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [string]$User,
+        [Parameter(Mandatory = $false)]
+        [string]$Group,
         [Parameter(Mandatory = $false)]
         [string]$apikey,
         [Parameter(Mandatory = $false)]
@@ -75,7 +77,6 @@ Function Add-LocalMirror {
 
             # set default mirror name
             if(!$Name){$name = 'mirror'}else {$name = $Name}
-
             switch ($Endpoint) {
                 "gitlab" {
                     # Predefined
@@ -88,7 +89,6 @@ Function Add-LocalMirror {
                     }
                     else {
                         throw 'Gitlab host not set, set with -GitLabHost or $ENV:GITLAB_HOST'
-                        break;
                     }
                 } 
                 "github" {
@@ -100,49 +100,48 @@ Function Add-LocalMirror {
                         $MirrorHost_url = $GiteaHost
                     }
                     else {
-                        throw 'gitea host not set, set with -GiteaHost or $ENV:GITEA_HOST'
-                        break;
+                        throw [System.Exception]::new('gitea host not set, set with -GiteaHost or $ENV:GITEA_HOST')
                     }
                 }
                 default { 
                     Throw "no mirror host set for $Endpoint"
-                    break;
                 }
             }
 
             if (!$User) {
-                if ($null -eq $ENV:GlV_MIRROR_USER -or $ENV:GlV_MIRROR_USER -eq "") {
-                    throw 'gitlab user not set, set with $ENV:GlV_MIRROR_USER or -MirrorUser'
-                }
-                else {
-                    $User = $ENV:GlV_MIRROR_USER
+                if ($null -eq $ENV:GLV_MIRROR_USER -or $ENV:GLV_MIRROR_USER -eq "") {
+                    throw 'User param is not set, set with $ENV:GLV_MIRROR_USER or -User'
                 }
             }
-            else {
 
+            if (!$Group) { 
+                $Group = $user 
             }
+
             if (!$APIKey) {
                 if ($null -eq $ENV:GLV_MIRROR_APIKEY -or $ENV:GLV_MIRROR_APIKEY -eq "") {
-                    throw 'mirror api key not set, set with $ENV:GLV_MIRROR_APIKEY or -APIKey'
+                    throw 'APIKEY param is not set, set with $ENV:GLV_MIRROR_APIKEY or -APIKey'
                 }
                 else {
                     $APIKey = $ENV:GLV_MIRROR_APIKEY
                 }
             }
         }catch [System.Exception] {
-            [console]::write("$($global:_glvigor.logsub)$(csole -s ■ -c red)-error $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsub)$(csole -s ■ -c red)-Error $(csole -s $_.Exception.Message -c red)`n")
+            break;
         }
 
         if (Get-Command -Name git) {
             try {
 
-                $repo_string = "https://$user`:$apikey@$MirrorHost_url/$user/$RepoName.git"
+                $repo_string = "https://$user`:$apikey@$MirrorHost_url/$Group/$RepoName.git"
                 $repo_string_safe = $repo_string.replace($apikey, "*******************")
                 [console]::write("$($global:_glvigor.logSub) generating endpoint string: $(csole -s $endpoint -c cyan) -  $(csole -s $repo_string_safe -c cyan)`n")
 
                 $non_origin = Get-localRemoteConfig | Where-Object { $_.Name -ne 'origin' }
                 if ($non_origin.Name -contains $name) {
                     throw "mirror '$name' already exists for $RepoName"
+                    return;
                 }else{
                     [console]::write($("$($global:_glvigor.logSub)$($global:_glvigor.logcmds.git_config)::($(csole -s "git remote add mirror" -c white))::$repo_string`n"))
                     git remote add $name $repo_string

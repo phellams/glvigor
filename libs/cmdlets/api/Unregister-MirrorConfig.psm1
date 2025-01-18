@@ -1,26 +1,26 @@
 <#
-    .SYNOPSIS
+.SYNOPSIS
+Unregister-MirrorConfig removes a mirror from a project.
 
-    Unregister-MirrorConfig removes a mirror from a project.
+.DESCRIPTION
+Unregister-MirrorConfig removes a mirror from a project.
 
-    .DESCRIPTION
+.PARAMETER Data
+Data to be passed in via the pipeline. If not specified, -ProjectID and -MirrorID are required.
 
-    Unregister-MirrorConfig removes a mirror from a project.
+.PARAMETER ProjectID
+The ID of the project to remove the mirror from.
 
-    .PARAMETER ProjectID
-        The ID of the project to remove the mirror from.
+.PARAMETER MirrorID
+The ID of the mirror to remove.
 
-    .PARAMETER MirrorID
-        The ID of the mirror to remove.
+.EXAMPLE
+Unregister-MirrorConfig -ProjectID 1 -MirrorID 2
 
-    .EXAMPLE
-
-    Unregister-MirrorConfig -ProjectID 1 -MirrorID 2
-
-    .NOTES
-        Requires Authentication through Request-GitLabAuth
-        
-    .LINK
+.NOTES
+Requires Authentication through Request-GitLabAuth
+    
+.LINK
 #>
 
 using module .\Request-GitLabAuth.psm1
@@ -29,9 +29,11 @@ using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
 using module .\private\Confirm-GitLabAuth.psm1
 
 function Unregister-MirrorConfig {
+
     [CmdletBinding()]
     [OutputType('void')]
-    [Alias('glvum')]
+    [Alias('glvurm')]
+
     param (
         [Parameter(Mandatory = $false, ValueFromPipeline = $true)]
         [pscustomobject]$Data,
@@ -40,10 +42,24 @@ function Unregister-MirrorConfig {
         [Parameter(Mandatory = $false)]
         [int]$MirrorID
     )
-    process{
-        try{
 
-            Confirm-GitLabAuth
+    process {
+
+        try {
+            #=== AUTH AND PIPELINE DATA ===
+            # change logtype and newline depending on if data is coming from pipeline
+            # helps with readability
+            [string]$initlogType = ''
+            if ($data) {
+                $initlogType = 'logsub'; $frompipeline = "`n"
+            }
+            else { $initlogType = 'log'; $frompipeline = '' }
+
+            [console]::write("$frompipeline$($global:_glvigor.$initlogType) Initializing $(csole -s 'mirror-config-unregistration' -c yellow) request`n")
+            
+            # call auth check
+            confirm-GitLabAuth
+            #=== AUTH AND PIPELINE DATA ===
 
             if(!$data -and !$ProjectID){
                 throw "No data from pipe or -projectid param specified"
@@ -55,7 +71,7 @@ function Unregister-MirrorConfig {
                 $MirrorID = $MirrorID
             }
 
-            [console]::write("$($global:_glvigor.log) running mirror configuration unregistration`n")
+            [console]::write("$($global:_glvigor.logsub) running mirror configuration unregistration`n")
             $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
             $headers.Add("Authorization", "Bearer $_gitlab_apikey")
@@ -64,16 +80,16 @@ function Unregister-MirrorConfig {
             Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$ProjectID/remote_mirrors/$MirrorID" `
                               -Headers $headers `
                               -Method 'DELETE'
-            [console]::write("$($global:_glvigor.logsub) $(csole -s "Mirror configuration unregistered" -c green)`n")
+            [console]::write("$($global:_glvigor.logsub)$(csole -s " ✅ Mirror configuration unregistered" -c green)`n")
         }catch [System.Exception] {
-           [console]::write("$($global:_glvigor.logsub) $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsub)$(csole -s ■ -c red)-Error $(csole -s $_.Exception.Message -c red)`n")
         }
     }
 }
 
 $cmdletconfig = @{
     function = @("Unregister-MirrorConfig")
-    alias    = @("glvum")
+    alias    = @("glvurm")
 }
 
 Export-Modulemember @cmdletconfig
