@@ -1,0 +1,94 @@
+{
+    "Languages": {
+        "CCharp": [136, 230, 255],
+        "PowerShell": [107, 203, 238],
+        "HTML": [137, 220, 243],
+        "CSS": [107, 204, 255],
+        "JavaScript": [97, 220, 255],
+        "PHP": [127, 219, 241],
+        "Markdown": [94, 171, 247],
+        "JSON": [97, 52, 86],
+        "XML": [10, 182, 24],
+        "YAML": [100, 38, 255],
+        "SQL": [97, 220, 1],
+        "Python": [97, 220, 50],
+        "zig": [232, 82, 200],
+        "Rust": [182, 123, 23],
+        "erlang": [23, 82, 42],
+        "elixir": [52, 200, 210]
+    },
+    "Frontend Frameworks": {
+        "TailwindCSS": [99, 222, 253],
+        "Alpine.js": [147, 172, 229]
+    },
+    "Backend Frameworks": {
+        "Laravel": [255, 226, 98],
+        "Laravel-Liveview": [255, 150, 98],
+        "Node": [255, 170, 134],
+        ".Net Aspire": [10, 150, 98]
+    },
+    "Platforms & Environments": {
+        "Windows": [209, 145, 77],
+        "Linux": [220, 163, 91],
+        "Cross-platform": [212, 167, 96]
+    },
+    "Development Categories": {
+        "Backend": [163, 116, 222],
+        "Frontend": [145, 106, 175],
+        "Fullstack": [136, 92, 179],
+        "CLI Tool": [141, 95, 224],
+        "PowerShell Module": [168, 78, 214],
+        "Web Application": [153, 88, 224],
+        ".NET Library": [146, 90, 175],
+        "API": [163, 106, 205]
+    },
+    "Workflow & Status": {
+        "In Progress": [95, 194, 83],
+        "To Do": [118, 192, 70],
+        "Blocked": [88, 172, 124],
+        "Code Review": [130, 192, 113],
+        "Task": [155, 120, 110]
+    },
+    "Priority": {
+        "P1 (Critical)": [238, 113, 106],
+        "P2 (High)": [255, 116, 104],
+        "P3 (Medium)": [241, 110, 129],
+        "P4 (Low)": [255, 79, 130]
+    },
+    "Issue Types": {
+        "Bug": [103, 103, 238],
+        "Feature": [78, 74, 255],
+        "Enhancement": [128, 92, 255],
+        "Refactor": [81, 85, 246],
+        "Performance": [102, 104, 255],
+        "Security": [74, 102, 255],
+        "DevOps": [108, 124, 255]
+    },
+    "Tools & Package Managers": {
+        "NuGet": [255, 170, 96],
+        "ProGet": [249, 191, 104],
+        "composer": [69, 72, 155]
+    },
+    "Operating System Specific": {
+        "Windows-specific": [189, 169, 197],
+        "Linux-specific": [176, 156, 183]
+    },
+    "Database": {
+        "PostgreSQL": [116, 255, 144],
+        "SQLite": [141, 255, 99],
+        "Migrations": [134, 255, 130],
+        "Mysql": [10, 255, 30],
+        "MariaDB": [10, 255, 30],
+        "InfluxDB": [100, 132, 182]
+    },
+    "Testing": {
+        "Unit Test": [106, 80, 147],
+        "Integration Test": [104, 80, 159]
+    },
+    "Other": {
+        "Documentation": [175, 92, 144],
+        "Research": [196, 109, 156],
+        "Dependency Update": [181, 72, 127],
+        "Help Wanted": [179, 89, 172]
+    }
+}
