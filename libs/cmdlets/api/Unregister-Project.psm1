@@ -1,0 +1,119 @@
+using module ..\..\securestring\undo-securestring.psm1
+using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module .\private\Confirm-GitLabAuth.psm1
+
+
+
+<#
+.SYNOPSIS
+Unregister-Project removes a project from GitLab.
+
+.DESCRIPTION    
+Unregister-Project removes a project from GitLab.
+
+.PARAMETER ProjectID
+The ID of the project to remove.
+
+.PARAMETER Data
+Data to be passed in via the pipeline.
+
+.PARAMETER NoConfirmation
+If specified, NoConfirmation:$true will be passed to the function. bypassing repository deletion confirmation name prompt
+
+.EXAMPLE
+Unregister-Project -ProjectID 1
+
+.EXAMPLE
+Search-gitlab -type project -title myrepo -match | Unregister-Project
+
+.EXAMPLE
+Request-Project -ProjectID 1 | Unregister-Project
+
+.EXAMPLE
+Request-Project -ProjectID 1 | Unregister-Project -NoConfirmation:$true
+
+.NOTES
+Requires authentication via `Request-GitLabAuth`.
+#>
+
+function Unregister-Project {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false, ValueFromPipeline=$true)]
+        [pscustomobject]$data,
+        [Parameter(Mandatory=$false)]
+        [int]$ProjectID
+    )
+
+    process {
+
+        #=== AUTH AND PIPELINE DATA ===
+        # change logtype and newline depending on if data is coming from pipeline
+        # helps with readability
+        [string]$initlogType = ''
+        [string]$pipedCmdlet = ''
+        [string]$nl = ''
+        if ($data) { 
+            $initlogType = 'logsubrun'
+            $nl = "`n"
+            [string]$pipedCmdlet = "($(csole -s "unregister-project" -c blue))"
+            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow) $pipedCmdlet...`n")
+        }
+        else {
+            $nl = '' 
+            $initlogType = 'log';
+            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow)...`n")
+        }
+        # call auth check
+        confirm-GitLabAuth
+        #=== AUTH AND PIPELINE DATA ===
+
+
+        if(!$data.id -and !$ProjectID){
+            throw "No data from pipe or -projectid param specified"
+            return
+        }elseif($data.id){
+            $ProjectID = $data.id
+            $project_name = $data.name
+            $inputsource = csole -s '[pipe]' -c gray -bg darkyellow
+        }else{
+            $ProjectID = $ProjectID
+            $project_name = (Request-ProjectName -ProjectID $ProjectID).project_name
+            $inputsource = csole -s '[param]' -c gray -bg darkcyan
+        }
+        
+        $log_request_path = csole -s "$($global:_glvigor.auth.apipath)/projects/$ProjectID"
+        
+        [console]::write("$($global:_glvigor.logsub) removing project id: $(csole -s "$ProjectID" -c magenta)`n")
+        [console]::write("$($global:_glvigor.logsubrun)$($global:_glvigor.logcmds.api_delete)::$inputsource::$log_request_path`n")
+       
+        $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
+        $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+        $headers.Add("Authorization", "Bearer $_gitlab_apikey")
+        $headers.Add("Content-Type", "application/json")
+        
+        [console]::write("$($global:_glvigor.logsub) deleting project {$(csole -s "$ProjectID`:$project_name" -c red)} this is a permanent action`n")
+        [console]::write("$($global:_glvigor.logsub) please type the project name '$(csole -s "$($Project_name)" -c red)' to confirm the deletion:")
+        $confirm = Read-Host
+        if($confirm -notmatch $project_name){
+            [console]::write("$($global:_glvigor.logsub) $(csole -s "deletion cancelled $confirm does not match $project_name" -c red)`n")
+            return
+        }
+        else {
+            $request_project = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$ProjectID" `
+                -Headers $headers `
+                -Method 'DELETE'
+            
+            [console]::write("$($global:_glvigor.logsublast) $(csole -s "deleted project $ProjectID|$project_name" -c green)`n")
+        
+            return $request_project
+        }
+    }    
+}
+
+$cmdlet_config = @{
+    function = @('Unregister-Project')
+    alias    = @('glvurp')
+}
+
+Export-Modulemember @cmdlet_config

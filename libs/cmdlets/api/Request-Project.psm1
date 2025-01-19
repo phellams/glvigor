@@ -31,8 +31,27 @@ function Request-Project {
     )
 
     process {
+
+        #=== AUTH AND PIPELINE DATA ===
+        # change logtype and newline depending on if data is coming from pipeline
+        # helps with readability
+        [string]$initlogType = ''
+        [string]$pipedCmdlet = ''
+        [string]$nl = ''
+        if ($data) { 
+            $initlogType = 'logsubrun'
+            $nl = "`n"
+            [string]$pipedCmdlet = "($(csole -s "Request-Project" -c blue))"
+            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow) $pipedCmdlet...`n")
+        }
+        else {
+            $nl = '' 
+            $initlogType = 'log';
+            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow)...`n")
+        }
         # call auth check
         confirm-GitLabAuth
+        #=== AUTH AND PIPELINE DATA ===
 
         try{
             [console]::write("$($global:_glvigor.log) fetching project id: $(csole -s $projectid -c magenta)`n")

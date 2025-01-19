@@ -62,20 +62,23 @@ function Request-MirrorConfig {
     process {
 
         try{
+
             #=== AUTH AND PIPELINE DATA ===
             # change logtype and newline depending on if data is coming from pipeline
             # helps with readability
             [string]$initlogType = ''
             [string]$pipedCmdlet = ''
+            [string]$nl = ''
             if($data){ 
-                $initlogType='logsub'
+                $initlogType='logsubrun'
+                $nl = "`n"
                 [string]$pipedCmdlet = "($(csole -s "Request-MirrorConfig" -c blue))"
-            }else{ 
-                $initlogType = 'log'; 
+                [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-mirror-config-request' -c yellow) $pipedCmdlet...`n")
+            }else{
+                $nl = '' 
+                $initlogType = 'log';
+                [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-mirror-config-request' -c yellow)...`n")
             }
-            # final logtype message
-            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) => $(csole -s 'api-mirror-config-request' -c yellow) $pipedCmdlet...`n")
-            
             # call auth check
             confirm-GitLabAuth
             #=== AUTH AND PIPELINE DATA ===

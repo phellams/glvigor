@@ -26,17 +26,17 @@ Optional description of the repository.
 
 .EXAMPLE
 # Create a public repository under user account
-Register-Repository -name "my-repo" -user "username" -description "My new repo"
+Register-Project -name "my-repo" -user "username" -description "My new repo"
 
 .EXAMPLE
 # Create a private repository under an organization
-Register-Repository -name "secret-project" -group "my-org" -private $true -gitlab_token "ghp_token"
+Register-Project -name "secret-project" -group "my-org" -private $true -gitlab_token "ghp_token"
 
 .NOTES
 Requires a Gitlab personal access token with appropriate repository creation permissions.
 #>
 
-function Register-Repository {
+function Register-Project {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     [Alias('glvrp')]
@@ -48,7 +48,7 @@ function Register-Repository {
         [Parameter(Mandatory = $false)]
         [string]$description,
         [Parameter(Mandatory = $false)]
-        [string[]]$tags,
+        [array]$tags,
         [Parameter(Mandatory = $false)]
         [ValidateSet('public', 'private', IgnoreCase = $true)]
         [string]$visibilitys,
@@ -60,11 +60,16 @@ function Register-Repository {
 
     process {
         try {
-            
-            [console]::write("$($global:_glvigor.log) gitlab repository creation request`n")
-            [console]::write("$($global:_glvigor.logsub) creating repository $(csole -s "$name" -c magenta)`n")
 
-            Confirm-GitlabAuth
+            
+            [console]::write("$($global:_glvigor.log) $($global:_glvigor.logcmds.run) $(csole -s 'api-project-creation-post-request' -c yellow)...`n")
+
+            #=== AUTH AND PIPELINE DATA ===
+            # call auth check
+            confirm-GitLabAuth
+            #=== AUTH AND PIPELINE DATA ===
+
+            [console]::write("$($global:_glvigor.logsub) create repository '$(csole -s "$name" -c magenta)'`n")
             
             if (!$visibility) { $visibility = "public" }
             if (!$DefaultBranch) { $DefaultBranch = "main" }            
@@ -89,7 +94,7 @@ function Register-Repository {
             }
 
             if ($null -ne (search-gitlab -title $name -type projects -match).id) {
-                throw "gitlab repository 'cosmicshell' already exists, please delete it first."
+                throw "gitlab repository '$(csole -s $name -c magenta)' already exists. please choose another name."
                 return
             }
 
@@ -99,8 +104,7 @@ function Register-Repository {
                 'Authorization'        = "Bearer $_gitlab_apikey"
             }
 
-            [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_post)::$($global:_glvigor.auth.apipath)/projects`n")
-
+            [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_post) $($global:_glvigor.auth.apipath)/projects`n")
             $response = Invoke-RestMethod -Uri "$($global:_glvigor.auth.apipath)/projects" -Method Post -Headers $http_header -Body ($requestBody | ConvertTo-Json)
 
             [console]::write("$($global:_glvigor.logsub) repository $(csole -s "$name" -c magenta) created`n")
@@ -125,7 +129,7 @@ function Register-Repository {
             
         }
         catch {
-            [console]::write("$($global:_glvigor.logsub) $(csole -s ' ■─error creating repository:' -c red) $($_.Exception.Message)`n")
+            [console]::write("`n$($global:_glvigor.logsub) $(csole -s '■─error:' -c red) $($_.Exception.Message)`n")
             return $response
         }
     }
@@ -133,7 +137,7 @@ function Register-Repository {
 }
 
 $cmdlet_config = @{
-    function = @('Register-Repository')   
+    function = @('Register-Project')   
     alias    = @('glvrp')
 }
 

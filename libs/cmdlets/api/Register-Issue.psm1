@@ -106,7 +106,7 @@ function Register-Issue {
             $pipedCmdlet = ''
         }
         # final logtype message
-        [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) => $(csole -s 'api-issue-creation-request' -c yellow) $pipedCmdlet...`n")
+        [console]::write("$($global:_glvigor.log)$($global:_glvigor.logcmds.run) $(csole -s 'api-issue-creation-request' -c yellow) $pipedCmdlet...`n")
         
         # call auth check
         confirm-GitLabAuth

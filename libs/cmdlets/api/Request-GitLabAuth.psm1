@@ -34,7 +34,7 @@ function Request-GitLabAuth {
     )
 
     process {
-        [console]::write("$($global:_glvigor.log)$($global:_glvigor.logcmds.run) => GitLab Authentication...`n")
+        [console]::write("$($global:_glvigor.log)$($global:_glvigor.logcmds.run) gitlab authentication...`n")
 
         # Allows for the use of $ENV:GITLAB_HOST
         if(!$Hostname){$Hostname = $ENV:GITLAB_HOST}
@@ -45,12 +45,12 @@ function Request-GitLabAuth {
 
         try{
             # secure API key using SecureString
-            [console]::write("$($global:_glvigor.logsub) Securing 🔐-[$(csole -s APIKEY -c magenta)] as secure string`n")
+            [console]::write("$($global:_glvigor.logsub) securing 🔐-[$(csole -s apikey -c magenta)] as secure string`n")
             [SecureString] $secureString = [SecureString]::new()
             $apiKey.ToCharArray() | ForEach-Object { $secureString.AppendChar($_) }
             $secureString.MakeReadOnly()
         } catch [Exception] {
-            [console]::write("$($global:_glvigor.logsub)$(csole -s ■ -c red)-Error $(csole -s $_.Exception.Message -c red)`n")
+            [console]::write("$($global:_glvigor.logsub)$(csole -s ■ -c red)-error $(csole -s $_.Exception.Message -c red)`n")
         }
         # Set Headers
         $headers = New-Object 'System.Collections.Generic.Dictionary[[String],[String]]'
@@ -66,21 +66,21 @@ function Request-GitLabAuth {
         $userdata.add('apipath', $api_path)
         
         try{
-            [console]::write("$($global:_glvigor.logsub) Checking HTTP Connection Status`n")
-            [console]::write("$($global:_glvigor.logsubrun)$($global:_glvigor.logcmds.api_get) => $(csole -s "https://$hostname" -c cyan)`n")
+            [console]::write("$($global:_glvigor.logsub) checking http connection status`n")
+            [console]::write("$($global:_glvigor.logsubrun)$($global:_glvigor.logcmds.api_get) $(csole -s "https://$hostname" -c cyan)`n")
             $http_status = (Invoke-WebRequest -Uri "https://$hostname").StatusCode
 
-            [console]::write("$($global:_glvigor.logsub) Http connection status: $(csole -s $http_status -c green)`n")
+            [console]::write("$($global:_glvigor.logsub) http connection status: $(csole -s $http_status -c green)`n")
             # Add http_status to userdata
             $userdata.add('httpstatus', $http_status)
 
             # Get user data simplest way to check if authorized
             [console]::write("$($global:_glvigor.logsub) Fetching user data`n")
-            [console]::write("$($global:_glvigor.logsubrun)$($global:_glvigor.logcmds.api_get) => $(csole -s $api_path/user -c cyan)`n")
+            [console]::write("$($global:_glvigor.logsubrun)$($global:_glvigor.logcmds.api_get) $(csole -s $api_path/user -c cyan)`n")
             
             # make request
             $RequestUserData = Invoke-RestMethod "$api_path/user" -Method 'GET' -Headers $headers
-            [console]::write("$($global:_glvigor.logsub) Authentication successful using $(csole -s '[APIKEY]' -Color magenta) as 👤 $(csole -s "($($RequestUserData.id))-$($RequestUserData.username)" -c yellow)`n")
+            [console]::write("$($global:_glvigor.logsub) authentication successful using $(csole -s '[apikey]' -Color magenta) as 👤 $(csole -s "($($RequestUserData.id))-$($RequestUserData.username)" -c yellow)`n")
             
             # if authorized userdata will be returned
             # extract user data: id, username
@@ -93,10 +93,10 @@ function Request-GitLabAuth {
             }
             # if authorized return hashtable with connection status and config to use
             elseif($RequestUserData.id.Length -gt 0) {
-                [console]::write("$($global:_glvigor.logsub) Generating $(csole -s '[GLOBAL]' -Color magenta) auth object`n")
+                [console]::write("$($global:_glvigor.logsub) generating $(csole -s '[global]' -Color magenta) auth object`n")
             }
             $global:_glvigor.auth = $userdata
-            [console]::write("$($global:_glvigor.logsublast)─✅ Login successful as $(csole -s "($($RequestUserData.id))-$($RequestUserData.username)" -c green)a`n")
+            [console]::write("$($global:_glvigor.logsublast) 🔓 Login successful as $(csole -s "($(csole -s $RequestUserData.id -c magenta))-$($RequestUserData.username)" -c green)`n")
         } catch [Exception] {
             [console]::write("$($global:_glvigor.logsublast)$(csole -s ■ -c red)-Error > $($_.Exception.Message)`n")
         }

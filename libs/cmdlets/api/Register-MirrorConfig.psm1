@@ -84,8 +84,13 @@ function Register-MirrorConfig {
     
     process {
 
-        # call auth
-        confirm-gitlabauth
+        
+        [console]::write("$nl$($global:_glvigor.log)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-post-request' -c yellow)...`n")
+
+        #=== AUTH AND PIPELINE DATA ===
+        # call auth check
+        confirm-GitLabAuth
+        #=== AUTH AND PIPELINE DATA ===
 
         # set defaults
         [string]$MirrorHost_url = $null

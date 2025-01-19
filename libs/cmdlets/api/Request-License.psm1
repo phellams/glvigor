@@ -16,8 +16,11 @@ function Request-License {
     )
     process {
         try {
-            [console]::write("$($global:_glvigor.log) $($global:logcmds.run) requesting license template...`n")
-            Confirm-GitLabAuth
+
+            [console]::write("$($global:_glvigor.log)$($global:_glvigor.logcmds.run) $(csole -s 'api-license-get-request' -c yellow)...`n")
+            
+            # call auth check
+            confirm-GitLabAuth
 
             if(!$author){
                 $author = $global:_glvigor.auth.user

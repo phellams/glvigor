@@ -84,12 +84,27 @@ function Request-Issue {
         }
         
         #-----------
-        # if ($Data -and !$projectid) { $projectid = $data.id}
         try {
-
-            [console]::write("$($global:_glvigor.logsub) initializing $(csole -s 'issue' -c yellow) request`n")
-
-            Confirm-GitlabAuth
+            #=== AUTH AND PIPELINE DATA ===
+            # change logtype and newline depending on if data is coming from pipeline
+            # helps with readability
+            [string]$initlogType = ''
+            [string]$pipedCmdlet = ''
+            [string]$nl = ''
+            if ($data) { 
+                $initlogType = 'logsubrun'
+                $nl = "`n"
+                [string]$pipedCmdlet = "($(csole -s "request-issue" -c blue))"
+                [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-issue-get-request' -c yellow) $pipedCmdlet...`n")
+            }
+            else {
+                $nl = '' 
+                $initlogType = 'log';
+                [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-issue-get-request' -c yellow)...`n")
+            }
+            # call auth check
+            confirm-GitLabAuth
+            #=== AUTH AND PIPELINE DATA ===
 
             $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             #! Note Headers can use a simple hash table or a PSObject as value 
