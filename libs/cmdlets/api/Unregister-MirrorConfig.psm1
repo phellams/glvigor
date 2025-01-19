@@ -46,20 +46,6 @@ function Unregister-MirrorConfig {
     process {
 
         try {
-            #=== AUTH AND PIPELINE DATA ===
-            # change logtype and newline depending on if data is coming from pipeline
-            # helps with readability
-            [string]$initlogType = ''
-            if ($data) {
-                $initlogType = 'logsub'; $frompipeline = "`n"
-            }
-            else { $initlogType = 'log'; $frompipeline = '' }
-
-            [console]::write("$frompipeline$($global:_glvigor.$initlogType) Initializing $(csole -s 'mirror-config-unregistration' -c yellow) request`n")
-            
-            # call auth check
-            confirm-GitLabAuth
-            #=== AUTH AND PIPELINE DATA ===
 
             #=== AUTH AND PIPELINE DATA ===
             # change logtype and newline depending on if data is coming from pipeline
