@@ -78,7 +78,7 @@ function Unregister-Project {
             $inputsource = csole -s '[pipe]' -c gray -bg darkyellow
         }else{
             $ProjectID = $ProjectID
-            $project_name = (Request-ProjectName -ProjectID $ProjectID).project_name
+            $project_name = (Request-Project -ProjectID $ProjectID).project_name
             $inputsource = csole -s '[param]' -c gray -bg darkcyan
         }
         
