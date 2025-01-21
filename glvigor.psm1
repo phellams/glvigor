@@ -23,11 +23,11 @@ using module libs\cmdlets\api\Search-GitLab.psm1 #api
 using module libs\cmdlets\api\Request-MirrorConfig.psm1 #api
 using module libs\cmdlets\api\Register-MirrorConfig.psm1 #api
 using module libs\cmdlets\api\Unregister-MirrorConfig.psm1 #api
-using module libs\cmdlets\api\Request-Project.psm1 #api
 using module libs\cmdlets\api\Request-Issue.psm1 #api
-using module libs\cmdlets\api\Register-Project.psm1 #api
 using module libs\cmdlets\api\Request-License.psm1 #api
-using module libs\cmdlets\api\Unregister-Project.psm1 #api
+using module libs\cmdlets\api\project\Request-Project.psm1 #api
+using module libs\cmdlets\api\project\Register-Project.psm1 #api
+using module libs\cmdlets\api\project\Unregister-Project.psm1 #api
 # using module libs\cmdlets\api\Unregister-Issue.psm1 #api #todo create cmdlets
 using module libs\cmdlets\api\Register-Issue.psm1 #api
 using module libs\cmdlets\git\Get-LocalRemoteConfig.psm1 #git

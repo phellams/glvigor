@@ -1,6 +1,6 @@
-using module ..\..\securestring\undo-securestring.psm1
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
-using module .\private\Confirm-GitLabAuth.psm1
+using module ..\..\..\securestring\undo-securestring.psm1
+using module ..\..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module ..\private\Confirm-GitLabAuth.psm1
 <#
 .SYNOPSIS
 @SYNOPSIS
@@ -48,7 +48,7 @@ function Register-Project {
         [Parameter(Mandatory = $false)]
         [string]$description,
         [Parameter(Mandatory = $false)]
-        [array]$tags,
+        [string[]]$tags,
         [Parameter(Mandatory = $false)]
         [ValidateSet('public', 'private', IgnoreCase = $true)]
         [string]$visibilitys,

@@ -1,6 +1,6 @@
-using module ..\..\securestring\undo-securestring.psm1
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
-using module .\private\Confirm-GitLabAuth.psm1
+using module ..\..\..\securestring\undo-securestring.psm1
+using module ..\..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module ..\private\Confirm-GitLabAuth.psm1
  
 <#
 .SYNOPSIS
@@ -54,17 +54,22 @@ function Request-Project {
         #=== AUTH AND PIPELINE DATA ===
 
         try{
+
             [console]::write("$($global:_glvigor.log) fetching project id: $(csole -s $projectid -c magenta)`n")
             [console]::write("$($global:_glvigor.logsub) Generating request...`n")
-            [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$($global:_glvigor.auth.apipath)/projects/$ProjectID`n")
+            [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$($global:_glvigor.auth.apipath)/projects/$(csole -s "$ProjectID" -c magenta)`n")
+            
             $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
             $headers.Add("Authorization", "Bearer $_gitlab_apikey")
-            $headers.Add("Content-Type", "application/json")
+            $headers.Add("Content-Type", "application/json")          
             $request_project = Invoke-RestMethod -uri "$($global:_glvigor.auth.apipath)/projects/$ProjectID"
             [console]::write("$($global:_glvigor.logsub) $(csole -s "project fetched" -c green)`n")
+        
         }catch [system.exception]{
+           
             [console]::write("$($global:_glvigor.logsub) $(csole -s $_.Exception.Message -c red)`n")
+
         }
         return $request_project
     }

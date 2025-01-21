@@ -1,3 +1,6 @@
+using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module ..\..\securestring\undo-securestring.psm1
+using module .\private\Confirm-GitLabAuth.psm1
 <#
 .SYNOPSIS
 Search-Gitlab sends a request to the GitLab API to retrieve a project.
@@ -23,10 +26,6 @@ If specified, returns the raw data from the API call as an unfiltered PSCustomOb
 .EXAMPLE
 Search-Gitlab -type projects -title 'test' -raw
 #>
-
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
-using module ..\..\securestring\undo-securestring.psm1
-using module .\private\Confirm-GitLabAuth.psm1
 
 function Search-Gitlab {
 
@@ -147,19 +146,22 @@ function Search-Gitlab {
                             # Namespace is not required but output help text to console if not provided
                             if (!$namespace) { $namespace = "use $(csole -s '-namespace' -c magenta)" }
                             else { $namespace = "$Namespace / $Title"}
-                            [console]::write("$($global:_glvigor.logsub) attempting to match •-[$(csole -s "$title" -c yellow)] in •-[$(csole -s "$Type" -c yellow)] with namespace •-[$(csole -s "$Namespace" -c yellow)]`n")
+                            [console]::write("$($global:_glvigor.logsub) attempting to match •-[$(csole -s "$SearchAll" -c yellow)] in •-[$(csole -s "$Type" -c yellow)] with namespace •-[$(csole -s "$Namespace" -c yellow)]`n")
                             $matched_filtered = $response | where-object { $_.name -eq $title -or $_.name_with_namespace -eq $Namespace }
                             if ($matched_filtered.count -gt 1){
                                 [console]::write("$($global:_glvigor.logsub) 🥽 multiple matches found •-[$(csole -s "$SearchAll" -c cyan)]")
                                 if(!$raw){ return $matched_filtered | select-object id, name, path_with_namespace, http_url_to_repo }
                                 else{ return $matched_filtered }
-                            }else{
+                            }elseif($matched_filtered.count -eq 1){
                                 [console]::write("$($global:_glvigor.logsub) 🥽 exact match found •-[$(csole -s "$SearchAll" -c cyan)] with id  $(csole -s "$($matched_filtered.id)" -c yellow)")
                                 if(!$raw){ return $matched_filtered | select-object id, name, path_with_namespace, http_url_to_repo }
                                 else{ return $matched_filtered }
+                            }else{
+                                [console]::write("$($global:_glvigor.logsub) 🥽 no matches found •-[$(csole -s "$SearchAll" -c yellow)]")
+                                return
                             }
                         }else{
-                            [console]::write("$($global:_glvigor.logsub) 🥽 filtering •-[$(csole -s "$(if($title){"$title"}else{"ALL"})]" -c yellow) in •-[$(csole -s $type -c yellow)] object")
+                            [console]::write("$($global:_glvigor.logsub) 🥽 filtering ••-[$(csole -s "$SearchAll" -c cyan)] in •-[$(csole -s $type -c yellow)] object")
                             # if coming from pipe dont output response with a `n line
                             if(!$raw){ return $response | select-object id, name, path_with_namespace, http_url_to_repo }
                             else{ return $response }
