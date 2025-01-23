@@ -50,9 +50,9 @@ register-MirrorConfig -Endpoint gitea -user 'sgkens' -apikey $apikey -giteahost 
 .EXAMPLE
 
 #>
-using module ..\..\securestring\undo-securestring.psm1
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
-using module .\private\confirm-GitLabAuth.psm1
+using module ..\..\..\securestring\undo-securestring.psm1
+using module ..\..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module ..\private\confirm-GitLabAuth.psm1
 
 function Register-MirrorConfig {
     [cmdletbinding()]
@@ -104,8 +104,6 @@ function Register-MirrorConfig {
         }else{
             $RepoName = $projectname
         }
-
-    
 
         [console]::write("$($global:_glvigor.log) starting mirror configuration for $(csole -s $RepoName -c yellow) `n")
 

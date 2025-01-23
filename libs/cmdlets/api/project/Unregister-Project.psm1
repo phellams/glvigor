@@ -48,19 +48,18 @@ function Unregister-Project {
         #=== AUTH AND PIPELINE DATA ===
         # change logtype and newline depending on if data is coming from pipeline
         # helps with readability
+        $currentLine = [Console]::CursorTop
         [string]$initlogType = ''
         [string]$pipedCmdlet = ''
-        [string]$nl = ''
         if ($data) { 
             $initlogType = 'logsubrun'
-            $nl = "`n"
             [string]$pipedCmdlet = "($(csole -s "unregister-project" -c blue))"
-            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow) $pipedCmdlet...`n")
+            [Console]::SetCursorPosition(0, $currentLine - 1) # move up one line if from pipeline removes space from log
+            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow) $pipedCmdlet...`n")
         }
         else {
-            $nl = '' 
             $initlogType = 'log';
-            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow)...`n")
+            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-unregister-request' -c yellow)...`n")
         }
         # call auth check
         confirm-GitLabAuth
@@ -72,13 +71,14 @@ function Unregister-Project {
                 return
             }elseif($data.id){
                 $ProjectID = $data.id
-                $inputsource = "{$(csole -s 'pipe' -c gray)}"
+                $project_name = $data.name
+                $inputsource = "{$(csole -s 'pipped' -c gray)}"
             }else{
+                $project_name = (Request-Project -ProjectID $ProjectID).name
                 $ProjectID = $ProjectID
                 $inputsource = csole -s '[param]' -c gray
             }
             
-            $project_name = (Request-Project -ProjectID $ProjectID).project_name
             if($null -eq $project_name){
                 throw "Project with ID: $ProjectID not found"
                 return
@@ -107,7 +107,7 @@ function Unregister-Project {
                     -Headers $headers `
                     -Method 'DELETE'
                 
-                [console]::write("$($global:_glvigor.logsublast) $(csole -s "deleted project $ProjectID|$project_name" -c green)`n")
+                [console]::write("$($global:_glvigor.logsublast) 🔥 deleted project $(csole -s "$ProjectID|$project_name" -c yellow)`n")
             
                 return $request_project
             }

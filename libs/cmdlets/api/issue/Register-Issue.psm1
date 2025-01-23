@@ -1,8 +1,4 @@
 
-using module ..\..\securestring\undo-securestring.psm1
-using module ..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
-using module .\private\Confirm-GitlabAuth.psm1
- 
 <#
 .SYNOPSIS
 Sends a request to the GitLab API to create and issue for a project.
@@ -57,6 +53,10 @@ Register-Issue -ProjectID 67 -Title 'My Issue title'
 .NOTES
 Requires authentication via `Request-GitLabAuth`.
 #>
+
+using module ..\..\..\securestring\undo-securestring.psm1
+using module ..\..\..\colorconsole\libs\cmdlets\New-ColorConsole.psm1
+using module ..\private\Confirm-GitlabAuth.psm1
 
 function Register-Issue {
 

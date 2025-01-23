@@ -14,30 +14,38 @@ on a GitLab instance. With this module, you can create, view, update, remove,
 and search for issues, merge requests, projects, groups, and labels through 
 the GitLab API. Additionally, the module includes cmdlets for handling 
 Git-related functions, such as viewing, adding, and removing mirrors, as well 
-as updating the origin.
+as updating the origin, and registering and unregistering mirrors via the 
+GitLab API, performing git commands, and more.
         
 #>
 using module libs\colorconsole\libs\cmdlets\New-ColorConsole.psm1 #api
 using module libs\cmdlets\api\Request-GitLabAuth.psm1 #api
 using module libs\cmdlets\api\Search-GitLab.psm1 #api
-using module libs\cmdlets\api\Request-MirrorConfig.psm1 #api
-using module libs\cmdlets\api\Register-MirrorConfig.psm1 #api
-using module libs\cmdlets\api\Unregister-MirrorConfig.psm1 #api
-using module libs\cmdlets\api\Request-Issue.psm1 #api
-using module libs\cmdlets\api\Request-License.psm1 #api
+# project
 using module libs\cmdlets\api\project\Request-Project.psm1 #api
 using module libs\cmdlets\api\project\Register-Project.psm1 #api
 using module libs\cmdlets\api\project\Unregister-Project.psm1 #api
+# mirror
+using module libs\cmdlets\api\mirror\Request-MirrorConfig.psm1 #api
+using module libs\cmdlets\api\mirror\Register-MirrorConfig.psm1 #api
+using module libs\cmdlets\api\mirror\Unregister-MirrorConfig.psm1 #api
+# issue
+using module libs\cmdlets\api\issue\Request-Issue.psm1 #api
+using module libs\cmdlets\api\issue\Register-Issue.psm1 #api
+# github api
+using module libs\cmdlets\api\github\Register-GithubRepository.psm1 #api
+# gitea api
+using module libs\cmdlets\api\gitea\Register-GiteaRepository.psm1 #api
+# license
+using module libs\cmdlets\api\Request-License.psm1 #api
 # using module libs\cmdlets\api\Unregister-Issue.psm1 #api #todo create cmdlets
-using module libs\cmdlets\api\Register-Issue.psm1 #api
+# git
 using module libs\cmdlets\git\Get-LocalRemoteConfig.psm1 #git
 using module libs\cmdlets\git\Add-LocalMirror.psm1 #git
 using module libs\cmdlets\git\Remove-LocalMirror.psm1 #git
 using module libs\cmdlets\git\Get-LocalMirrors.psm1 #git
 using module libs\cmdlets\git\Set-GitOrigin.psm1 #git
 using module libs\cmdlets\git\Get-GitOrigin.psm1 #git
-# github api
-using module libs\cmdlets\github\Request-GithubRepository.psm1 #api
 
 
 #! NOTE to self - set api functions to request, register, and unregister
@@ -88,6 +96,8 @@ $glvlt_sub_ni    = "$(" " * 2)" #  sub console message
 $glvlt_sepapi    = "$(csole -s '⇆' -c magenta)" # speparator icon api
 $glvlt_sep       = "$(csole -s '⇒' -c yellow)" # speparator icon
 $glvlt_pg        = "$(csole -s '↻' -c green)" # Paganate icon
+# error icon emoji red circle
+$error_icon      = "$(csole -s '⌫═•' -c red)" # error icon emoji red circle
 
 $global:_glvigor = @{
     rootpath     = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
@@ -100,6 +110,7 @@ $global:_glvigor = @{
     sep          = $glvlt_sep
     pg           = $glvlt_pg
     auth         = $null
+    error        = $error_icon
     logcmds      = @{
         api_get        = "$(csole -s '🟢' -c green)─{$(csole -s 'gilab-api' -c magenta)}$('::')$(csole -s 'get' -c green) $glvlt_sepapi";
         api_post       = "$(csole -s '🟡' -c yellow)─{$(csole -s 'gilab-api' -c magenta)}$('::')$(csole -s 'post' -c yellow) $glvlt_sepapi";
@@ -112,6 +123,9 @@ $global:_glvigor = @{
         git_config     = "$(csole -s '📝' -c white)─{$(csole -s 'git' -c white)}$('::')$(csole -s 'cmd' -c white) $glvlt_sep";
         git_github_api = "$(csole -s '🟡' -c white)─$(csole -s 'git' -c magenta)}$('::')$(csole -s 'github api' -c white) $glvlt_sep";
         run            = "$(csole -s '🌀' -c white)─{$(csole -s 'action' -c blue)}$('::')$(csole -s 'run' -c white) $glvlt_sep";
+
+        gitea_api_post  = "$(csole -s '🟡' -c white)─{$(csole -s 'gitea-api' -c magenta)}$('::')$(csole -s 'post' -c yellow) $glvlt_sepapi";
+        gitea_api_get   = "$(csole -s '🟢' -c white)─{$(csole -s 'gitea-api' -c magenta)}$('::')$(csole -s 'get' -c green) $glvlt_sepapi";
     }
 }
 
@@ -134,7 +148,8 @@ $moduleconfig = @{
         'Register-Project',
         'Request-License',
         'Unregister-Project',
-        'Request-GithubRepository'
+        'Register-GithubRepository',
+        'Register-GiteaRepository'
     )
     alias = @()
 }

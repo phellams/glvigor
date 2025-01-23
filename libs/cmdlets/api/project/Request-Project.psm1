@@ -35,19 +35,18 @@ function Request-Project {
         #=== AUTH AND PIPELINE DATA ===
         # change logtype and newline depending on if data is coming from pipeline
         # helps with readability
+        $currentLine = [Console]::CursorTop
         [string]$initlogType = ''
         [string]$pipedCmdlet = ''
-        [string]$nl = ''
         if ($data) { 
             $initlogType = 'logsubrun'
-            $nl = "`n"
-            [string]$pipedCmdlet = "($(csole -s "Request-Project" -c blue))"
-            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow) $pipedCmdlet...`n")
+            [string]$pipedCmdlet = "($(csole -s "request-project" -c blue))"
+            [Console]::SetCursorPosition(0, $currentLine -1) # move up one line if from pipeline removes space from log
+            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow) $pipedCmdlet...`n")
         }
         else {
-            $nl = '' 
             $initlogType = 'log';
-            [console]::write("$nl$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow)...`n")
+            [console]::write("$($global:_glvigor.$initlogType)$($global:_glvigor.logcmds.run) $(csole -s 'api-project-get-request' -c yellow)...`n")
         }
         # call auth check
         confirm-GitLabAuth
@@ -55,7 +54,7 @@ function Request-Project {
 
         try{
 
-            [console]::write("$($global:_glvigor.log) fetching project id: $(csole -s $projectid -c magenta)`n")
+            [console]::write("$($global:_glvigor.logsub) fetching project id: $(csole -s $projectid -c magenta)`n")
             [console]::write("$($global:_glvigor.logsub) Generating request...`n")
             [console]::write("$($global:_glvigor.logsub) $($global:_glvigor.logcmds.api_get)::$($global:_glvigor.auth.apipath)/projects/$(csole -s "$ProjectID" -c magenta)`n")
             
@@ -71,6 +70,7 @@ function Request-Project {
             [console]::write("$($global:_glvigor.logsub) $(csole -s $_.Exception.Message -c red)`n")
 
         }
+
         return $request_project
     }
 }
