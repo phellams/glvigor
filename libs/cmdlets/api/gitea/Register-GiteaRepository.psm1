@@ -63,10 +63,10 @@ function Register-GiteaRepository {
         [Parameter(Mandatory = $true)]
         [string]$Name,
         [Parameter(Mandatory = $false)]
-        [string]$Token,
+        [string]$apiKey,
         [Parameter(Mandatory = $false)]
         [string]$Hostname,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [string]$User,
         [Parameter(Mandatory = $false)]
         [string]$Group,
@@ -107,14 +107,14 @@ function Register-GiteaRepository {
             }
         
             # Support Environment Variable
-            if ($env:GITEA_API_KEY -and (!$token -or $token -eq "")) {
-                $token = $env:GITEA_API_KEY
+            if ($env:GITEA_API_KEY -and (!$apikey -or $apikey -eq "")) {
+                $apikey = $env:GITEA_API_KEY
             }
-            elseif ($token) {
-                $token = $token
+            elseif ($apikey) {
+                $apikey = $apikey
             }
             else {
-                throw "no gitea token provided, using environment variable GITEA_API_KEY or parameter -Token"
+                throw "no gitea token provided, using environment variable GITEA_API_KEY or parameter -apikey"
         
             }
             if ($env:GITEA_HOSTNAME -and (!$hostname -or $hostname -eq "")) {
@@ -143,7 +143,7 @@ function Register-GiteaRepository {
             if($topics){$requestBody.topics = $topics}
 
             $http_header = @{
-                'Authorization'        = "token $token"
+                'Authorization'        = "token $apiKey"
                 'Content-Type'         = 'Application/json'
             }
 

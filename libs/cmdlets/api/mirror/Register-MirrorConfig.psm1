@@ -8,6 +8,9 @@ Register-MirrorConfig registers a mirror to a project.
 .PARAMETER Endpoint
 The destination instance. Supported values: gitlab, gitlaben, gitea, github
 
+.PARAMETER Namespace
+Namespace of the project to mirror.
+
 .PARAMETER User
 Username or groupname of the project to mirror.
 
@@ -39,13 +42,13 @@ sets the mirror to keep divergent refs. Enables on mirror creation
 Request-GitLabAuth must be called before this function
 
 .EXAMPLE
-register-MirrorConfig -Endpoint gitlab -User 'sgkens' -apikey $apikey
+register-MirrorConfig -Endpoint gitlab -Namespace 'sgkens' -apikey $apikey
 
 .EXAMPLE
-register-MirrorConfig -Endpoint gitlaben -user 'powershell' -apikey $apikey -gitlabhost gitlab.custom.domain
+register-MirrorConfig -Endpoint gitlaben -Namespace 'powershell' -apikey $apikey -gitlabhost gitlab.custom.domain
 
 .EXAMPLE
-register-MirrorConfig -Endpoint gitea -user 'sgkens' -apikey $apikey -giteahost gitea.custom.domain -onlyprotected -divergentrefs -enabled
+register-MirrorConfig -Endpoint gitea -Namespace 'sgkens' -apikey $apikey -giteahost gitea.custom.domain -onlyprotected -divergentrefs -enabled
 
 .EXAMPLE
 
@@ -64,6 +67,8 @@ function Register-MirrorConfig {
         [string]$Endpoint,
         [Parameter(Mandatory = $false)]
         [string]$ProjectName,
+        [Parameter(Mandatory = $false)]
+        [string]$Namespace,
         [Parameter(Mandatory = $false)]
         [string]$User,
         # [Parameter(Mandatory = $false)]
@@ -147,12 +152,12 @@ function Register-MirrorConfig {
                 }
             }
 
-            if (!$User) {
-                if ($null -eq $ENV:GlV_MIRROR_USER -or $ENV:GlV_MIRROR_USER -eq "") {
-                    throw 'gitlab user not set, set with $ENV:GlV_MIRROR_USER or -MirrorUser'
+            if (!$Namespace) {
+                if ($null -eq $ENV:GlV_MIRROR_NAMESPACE -or $ENV:GlV_MIRROR_NAMESPACE -eq "") {
+                    throw 'gitlab namespace not set, set with $ENV:GlV_MIRROR_NAMESPACE or -Namespace'
                 }
                 else {
-                    $User = $ENV:GlV_MIRROR_USER
+                    $Namespace = $ENV:GlV_MIRROR_NAMESPACE
                 }
             }
             else {
@@ -190,9 +195,14 @@ function Register-MirrorConfig {
 
             [console]::write("$($global:_glvigor.log) generating mirror configuration: $(csole -s $reponame -c yellow)`n")
         
-            $protected_api_mirror_path = "https://*******************************@$MirrorHost_url/$User/$RepoName.git"
+            $protected_api_mirror_path = "https://********@$MirrorHost_url/$Namespace/$RepoName.git"
+            if($endpoint -eq 'gitlab'){ # gitlab.com requires the user:token SH-CE only requires the https://apikey@...
+                if(!$User){throw 'gitlab user not set, set with -User required for gitlab.com'}
+                $apikey = "$user`:$APIKey"
+                $protected_api_mirror_path = "https://$user`:********@$MirrorHost_url/$Namespace/$RepoName.git"
+            }
             $mirror_payload = @{
-                url                     = "https://$APIKey@$MirrorHost_url/$User/$RepoName.git"
+                url                     = "https://$APIKey@$MirrorHost_url/$Namespace/$RepoName.git"
                 enabled                 = ($Enabled).ToString().ToLower()
                 only_protected_branches = ($OnlyProtected).ToString().ToLower()
                 keep_divergent_refs     = ($DivergentRefs).ToString().ToLower()

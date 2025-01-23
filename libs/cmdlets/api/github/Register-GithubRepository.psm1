@@ -10,7 +10,7 @@ This script is used to request the creation of a new GitHub repository via the G
 .PARAMETER name
 The name of the repository to create. Must be unique within the user/organization scope.
 
-.PARAMETER github_token 
+.PARAMETER apikey 
 The GitHub personal access token used for authentication. If not provided, will attempt to use GITHUB_API_KEY environment variable.
 
 .PARAMETER user
@@ -41,7 +41,7 @@ function Register-GithubRepository {
         [Parameter(Mandatory = $true)]
         [string]$name,
         [Parameter(Mandatory = $false)]
-        [string]$github_token,
+        [string]$apikey,
         [Parameter(Mandatory = $false)]
         [string]$user,
         [Parameter(Mandatory = $false)]
@@ -69,14 +69,17 @@ function Register-GithubRepository {
             }
         
             # Support Environment Variable
-            if ($ENV:GITHUB_API_KEY -and ($github_token -eq "" -or $null -eq $github_token )) {
-                $github_token = $ENV:GITHUB_API_KEY
+            if ($env:GITHUB_API_KEY -and (!$apikey -or $apikey -eq "")) {
+                $apikey = $env:GITEA_API_KEY
+            }
+            elseif ($apikey) {
+                $apikey = $apikey
             }
             else {
-                [console]::write("GLV: No GitHub token provided, using environment variable GITHUB_API_KEY")
-                throw "No GitHub token provided, using environment variable GITHUB_API_KEY"
+                throw "no gitea token provided, using environment variable GITEA_API_KEY or parameter -apikey"
         
             }
+
             [console]::write("$($global:_glvigor.logsub) creating repository $(csole -s "$name" -c magenta) for userspace: $(csole -s "$github_api_url" -c magenta)`n")
 
             [string] $requestBody = @{
@@ -91,10 +94,9 @@ function Register-GithubRepository {
                 has_wiki     = $true
             } | ConvertTo-Json
 
-            $_gitlab_apikey = $global:_glvigor.auth.apikey | undo-securestring
             $http_header = @{
                 'Accept'               = 'application/vnd.github+json'
-                'Authorization'        = "Bearer $_gitlab_apikey"
+                'Authorization'        = "Bearer $apikey"
                 'X-GitHub-Api-Version' = '2022-11-28'
             }
 
@@ -127,8 +129,7 @@ function Register-GithubRepository {
             return $filtered_response
         }
         catch {
-            [console]::write("$($global:_glvigor.logsub) Error creating repository: $($_.Exception.Message)`n")
-            throw
+            [console]::write("$($global:_glvigor.logsub) error creating repository: $($_.Exception.Message)`n")
         }
     }
 
