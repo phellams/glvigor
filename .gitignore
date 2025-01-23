@@ -1,3 +1,4 @@
 dist/
+libs/cmdlets/deprecated/
 coverage.xml
 .vscode
