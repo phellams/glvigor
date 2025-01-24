@@ -1,0 +1,44 @@
+log example style 1
+
+Ø─┬•glviger─⚙─[glv>]::run => api-issue-creation-request ...
+  │ « Checking authentication status
+  │ « Impersonate(👤)-sgkens
+  │ « Issue new request to project 212 type task
+  │ « Initializing post data payload
+  ├───▫─⚙─[GLV]::run => api-issue-creation-request ...
+  ├───▫─🟡─[API]::post => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+  │ «  Parsing object...
+  │ «  Parsing object...
+  │ «  Parsing object...
+  ├───▫─🔷─[GLV]::run => api-issue-creation-request ...
+  ├───▫─🟢─[API]::get => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+  ├───▫─🟡─[API]::post => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+  ├───▫─🔴─[API]::delete => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+  ├───▫─🟣─[API]::update => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+  ├───▫─⚪─[GIT]::cmd => https://gitlab.kensclovud.online/api/v4/projects/212/issues
+ ┌┴───────────────────────────────────────────────────────── 
+JSON BODY PAYLOAD
+{
+  "issue_type": "task",
+  "title": "Error loading bat update",
+  "description": "# Mycustom issue \n This is the test description \n Mykey Points: \n - Point 1 \n - point2",
+  "assignee_ids": [
+    34
+  ],
+  "labels": [
+    "request",
+    "feat"
+  ],
+  "confidential": true
+}
+  JSON BODY PAYLOAD
+  ┌─────────────────────────────────────────────────────────
+  ├ « Parsing object...
+  ├ « Parsing object...
+  ├──▫─🔆─[glv>]::run => api-issue-creation-request ...
+  
+  
+  # ADD NEW STEPS to gitlab CI
+   - Push Mirror to gitlab and github
+   	- Tags will get pushed but not release
+   - Make Request request to Gitlab Selfhost, Gitlab, then Github x3 relesae 
