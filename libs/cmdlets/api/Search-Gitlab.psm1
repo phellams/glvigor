@@ -273,6 +273,10 @@ function Search-Gitlab {
                                 [console]::write("$($global:_glvigor.logsub) 🥽 multiple matches found for •-[$(csole -s "$SearchAll" -c cyan)]`n")
                                 if(!$raw){return $matched_filtered | select-object id, name, web_url}
                                 else{ return $matched_filtered }
+                            }else{
+                                [console]::write("$($global:_glvigor.logsub) 🥽 filtered matches found for •-[$(csole -s "$SearchAll" -c cyan)]`n")
+                                if (!$raw) { return $matched_filtered | select-object id, name, web_url }
+                                else { return $matched_filtered }   
                             }
                         }else{
                             [console]::write("$($global:_glvigor.logsub) 🥽 filtering •-[$(csole -s "$SearchAll" -c cyan)] in •-[$(csole -s $type -c yellow)] object`n")
